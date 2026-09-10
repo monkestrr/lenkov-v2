@@ -8,7 +8,8 @@
   const formNumber = document.getElementById('form-number');
   const motionButton = document.getElementById('motion-toggle');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let paused = false, visible = true, targetScroll = 0, scroll = 0, pointerX = 0, pointerY = 0, px = 0, py = 0;
+  let paused = reduced.matches, userMotion = false, visible = true, targetScroll = 0, scroll = 0, pointerX = 0, pointerY = 0, px = 0, py = 0;
+  const reduceMotion = () => reduced.matches && !userMotion;
   let offsets = [], lastTime = 0, time = 0, frame = 0, gl, program, uniforms, lost = false, dirty = true;
   document.getElementById('year').textContent = new Date().getFullYear();
   function measure() { offsets = chapters.map(el => el.offsetTop); updateScroll(); resize(); }
@@ -23,13 +24,18 @@
     formNumber.textContent = String(current + 1).padStart(3, '0');
     progressBar.style.transform = `scaleX(${Math.min(1, y / Math.max(1, document.documentElement.scrollHeight - window.innerHeight))})`;
   }
-  motionButton.addEventListener('click', () => {
-    paused = !paused;
-    dirty = true;
+  function syncMotionButton() {
     motionButton.setAttribute('aria-pressed', String(paused));
     motionButton.setAttribute('aria-label', paused ? 'Resume automatic motion' : 'Pause automatic motion');
     document.getElementById('motion-label').textContent = paused ? 'Resume motion' : 'Pause motion';
     motionButton.querySelector('.motion-icon').textContent = paused ? '▷' : 'Ⅱ';
+  }
+  syncMotionButton();
+  motionButton.addEventListener('click', () => {
+    paused = !paused;
+    userMotion = !paused;
+    dirty = true;
+    syncMotionButton();
   });
   window.addEventListener('scroll', updateScroll, { passive: true });
   window.addEventListener('resize', measure, { passive: true });
@@ -118,12 +124,13 @@
     frame=requestAnimationFrame(draw);
     if(!visible || lost) return;
     const dt=Math.min(.05, lastTime?(now-lastTime)/1000:.016);lastTime=now;
-    const moving=Math.abs(targetScroll-scroll)>.0001 || Math.abs((reduced.matches?0:pointerX)-px)>.0001 || Math.abs((reduced.matches?0:pointerY)-py)>.0001;
-    if((paused || reduced.matches) && !moving && !dirty) return;
-    if(!paused && !reduced.matches)time+=dt;
+    const quiet=reduceMotion();
+    const moving=Math.abs(targetScroll-scroll)>.0001 || Math.abs((quiet?0:pointerX)-px)>.0001 || Math.abs((quiet?0:pointerY)-py)>.0001;
+    if((paused || quiet) && !moving && !dirty) return;
+    if(!paused && !quiet)time+=dt;
     const follow=1-Math.exp(-dt*7);
-    scroll=reduced.matches?targetScroll:scroll+(targetScroll-scroll)*follow;
-    px+=((reduced.matches?0:pointerX)-px)*follow;py+=((reduced.matches?0:pointerY)-py)*follow;
+    scroll=quiet?targetScroll:scroll+(targetScroll-scroll)*follow;
+    px+=((quiet?0:pointerX)-px)*follow;py+=((quiet?0:pointerY)-py)*follow;
     if(!gl || !program) return;
     gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.pointer,px,py);gl.uniform1f(uniforms.clock,time);gl.uniform1f(uniforms.chapter,scroll);gl.uniform1f(uniforms.mobile,innerWidth<600?1:0);gl.drawArrays(gl.TRIANGLES,0,6);dirty=false;
   }
