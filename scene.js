@@ -8,7 +8,7 @@
   const formNumber = document.getElementById('form-number');
   const motionButton = document.getElementById('motion-toggle');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let paused = reduced.matches, userMotion = false, visible = true, targetScroll = 0, scroll = 0, pointerX = 0, pointerY = 0, px = 0, py = 0;
+  let paused = false, userMotion = true, visible = true, targetScroll = 0, scroll = 0, pointerX = 0, pointerY = 0, px = 0, py = 0;
   // Retain the visitor's explicit choice, including reduced-motion opt-in.
   try { const preference=localStorage.getItem('lenkov-motion'); if(preference!==null){paused=preference==='paused';userMotion=!paused;} } catch {}
   const reduceMotion = () => reduced.matches && !userMotion;
@@ -57,7 +57,7 @@
   if ('IntersectionObserver' in window) {
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
       entry.target.classList.toggle('in-view',entry.isIntersecting);
-    }),{threshold:.12,rootMargin:'0px 0px -30px 0px'});
+    }),{threshold:.12,rootMargin:'0px 0px -55px 0px'});
     document.querySelectorAll('.chapter-copy > *, .practice-content > .eyebrow, .practice-content > h2, .practice-list article, .contact-content > *').forEach((el,i)=>{
       el.classList.add('reveal-item');el.style.setProperty('--reveal-delay',`${(i%4)*80}ms`);observer.observe(el);revealItems.push(el);
     });

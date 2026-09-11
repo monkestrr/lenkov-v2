@@ -36,3 +36,11 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 @media(hover:none){.practice-list article:hover{padding-left:0}.practice-title span{transform:none!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}html:not(.motion-active) *,html:not(.motion-active) *:before,html:not(.motion-active) *:after{animation:none!important;transition:none!important}}
 .contact footer{position:relative;left:auto;right:auto;bottom:auto;width:100%;margin-top:64px;flex-shrink:0}.contact{padding-bottom:120px}
+
+.text-line{display:block;overflow:hidden;padding-bottom:.12em;margin-bottom:-.12em}
+.text-line>span{display:block}
+.motion-active h2.reveal-item{filter:none;transform:none;opacity:1}
+.motion-active h2.reveal-item .text-line>span{transition:transform 1.25s cubic-bezier(.16,1,.3,1),opacity .9s;transition-delay:calc(var(--reveal-delay,0ms) + var(--line-delay,0ms));will-change:transform}
+.motion-active h2.reveal-item:not(.in-view) .text-line>span{transform:translateY(115%) rotate(3deg);opacity:0}
+.motion-active h2.reveal-item.in-view .text-line>span{transform:translateY(0) rotate(0);opacity:1}
+.motion-active .body-copy.reveal-item{transition-duration:1.3s,1.5s,1.2s}
