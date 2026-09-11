@@ -9,4 +9,29 @@
 @media(min-width:1700px){.chapter{padding-top:170px;padding-bottom:130px}.intro{padding-bottom:100px}}
 @media(max-width:900px){.chapter-nav{right:7px}.chapter{padding-right:50px}.chapter-copy{width:58%}.practice-content{width:61%}.hero-copy h1{font-size:10.3vw}.hero-copy{margin-top:42vh}.header-note{font-size:10px}.body-copy{font-size:16px}.practice-list p{font-size:14px}.coordinate{font-size:9px}.scene-label{display:none}}
 @media(max-width:600px){.site-header{padding-top:20px;padding-bottom:20px}.wordmark{font-size:28px}.header-note{display:none}.contact-link{font-size:13px}.chapter{padding:115px 42px 110px var(--pad);min-height:100svh}.intro{padding-top:110px;padding-bottom:115px}.intro-top{gap:20px}.intro-top .micro{font-size:9px;letter-spacing:.04em;max-width:150px}.intro-top .right{white-space:nowrap}.hero-copy{margin-top:44svh}.hero-copy h1{font-size:18vw;line-height:.94}.hero-copy h1 span{display:block}.hero-caption{margin-bottom:26px}.hero-caption>p:first-child{font-size:20px}.hero-scroll{font-size:9px;gap:12px;max-width:78px}.hero-scroll span{font-size:19px}.chapter-copy,.practice-content{width:100%;max-width:100%}.about{align-items:flex-end;padding-top:40svh}.chapter-copy{background:linear-gradient(90deg,#090a0ce0,#090a0c85 72%,transparent);padding-top:20px}h2{font-size:clamp(44px,12vw,70px)}.body-copy{font-size:15px;line-height:1.7}.eyebrow{font-size:10px;gap:17px;margin-bottom:25px}.fine-rule{font-size:10px;gap:12px;margin-top:25px}.practice{padding-top:34svh;align-items:flex-end}.practice-content{background:linear-gradient(90deg,#090a0cdd,#090a0c88,transparent);padding-top:20px}.practice h2{font-size:clamp(37px,10vw,56px)}.practice-list{margin-top:27px}.practice-title h3{font-size:19px}.practice-list article{padding:18px 0}.practice-list p{font-size:13px}.contact{padding-right:var(--pad);padding-bottom:160px;min-height:110svh}.contact h2{font-size:12vw}.contact .body-copy{font-size:14px}.contact .eyebrow{font-size:9px}.email-button{padding:17px 25px;font-size:14px}.socials{font-size:12px;gap:23px}.contact footer{bottom:95px;line-height:1.6;text-align:left;font-size:10px}.contact footer a{max-width:105px;text-align:right}.scene-toolbar{bottom:24px}.coordinate{bottom:39px;font-size:8px;max-width:48%}.chapter-nav{right:0}.chapter-nav a{min-width:30px}.chapter-nav span{display:none}.chapter-nav i{width:4px}.chapter-nav a[aria-current] i{height:20px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}.hero-scroll span{animation:none}}
+/* Motion stays progressive: the document remains readable without scripts. */
+.reveal-item{opacity:1;transform:none;filter:none}
+.motion-active .reveal-item{transition:opacity 1s var(--ease),transform 1.4s var(--ease),filter 1.1s var(--ease);transition-delay:var(--reveal-delay,0ms)}
+.motion-active .reveal-item:not(.in-view){opacity:0;transform:translateY(42px);filter:blur(5px)}
+.motion-active .reveal-item.in-view{opacity:1;transform:translateY(0);filter:blur(0)}
+.practice-list article{position:relative;transition:padding .6s var(--ease),background .6s,border-color .6s}
+.practice-list article:before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,#a2bde310,transparent 80%);opacity:0;transition:opacity .6s}
+.practice-list article:hover{padding-left:15px;border-color:#b6ccee75}
+.practice-list article:hover:before{opacity:1}.practice-list article>*{position:relative}
+.practice-title span{transition:color .5s,transform .5s}.practice-list article:hover .practice-title span{color:#d3deff;transform:translateX(-12px)}
+.email-button,.contact-link{transform:translate(var(--magnet-x,0px),var(--magnet-y,0px));transition:transform .5s var(--ease),background .5s,color .5s}
+.email-button{position:relative;overflow:hidden;box-shadow:0 0 0 0 #c0d1f500}
+.email-button:hover{transform:translate(var(--magnet-x,0px),calc(var(--magnet-y,0px) - 4px));box-shadow:0 0 45px -12px #b8cdff55}
+.email-button:after{content:"";position:absolute;inset:-80% -40%;background:linear-gradient(110deg,transparent 40%,#ffffff50 50%,transparent 60%);transform:translateX(-80%);transition:transform 1.2s var(--ease);pointer-events:none}
+.email-button:hover:after{transform:translateX(80%)}
+.socials a{position:relative;padding-bottom:7px}.socials a:after{content:"";height:1px;position:absolute;left:0;bottom:0;width:100%;background:#c7d8ef;transform:scaleX(0);transform-origin:left;transition:transform .55s var(--ease)}.socials a:hover:after{transform:scaleX(1)}
+.socials a span{display:inline-block;transition:transform .5s var(--ease)}.socials a:hover span{transform:translate(3px,-3px)}
+.motion-active .hero-copy h1{animation:name-appear 1.8s var(--ease) both}
+.motion-active .hero-copy h1 span{background:linear-gradient(100deg,#8e99aa 10%,#edf3ff 45%,#8e99aa 75%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;color:transparent;animation:letter-light 12s ease-in-out infinite}
+.motion-active .scene-shade{animation:ambient-breathe 12s ease-in-out infinite alternate}
+html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
+@keyframes name-appear{from{opacity:0;clip-path:inset(100% 0 0);transform:translateY(30px)}to{opacity:1;clip-path:inset(0);transform:none}}
+@keyframes letter-light{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+@keyframes ambient-breathe{from{opacity:.55}to{opacity:1}}
+@media(hover:none){.practice-list article:hover{padding-left:0}.practice-title span{transform:none!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}html:not(.motion-active) *,html:not(.motion-active) *:before,html:not(.motion-active) *:after{animation:none!important;transition:none!important}}
