@@ -35,3 +35,4 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 @keyframes ambient-breathe{from{opacity:.55}to{opacity:1}}
 @media(hover:none){.practice-list article:hover{padding-left:0}.practice-title span{transform:none!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}html:not(.motion-active) *,html:not(.motion-active) *:before,html:not(.motion-active) *:after{animation:none!important;transition:none!important}}
+.contact footer{position:relative;left:auto;right:auto;bottom:auto;width:100%;margin-top:64px;flex-shrink:0}.contact{padding-bottom:120px}
