@@ -9,6 +9,8 @@
   const motionButton = document.getElementById('motion-toggle');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let paused = reduced.matches, userMotion = false, visible = true, targetScroll = 0, scroll = 0, pointerX = 0, pointerY = 0, px = 0, py = 0;
+  // Retain the visitor's explicit choice, including reduced-motion opt-in.
+  try { const preference=localStorage.getItem('lenkov-motion'); if(preference!==null){paused=preference==='paused';userMotion=!paused;} } catch {}
   const reduceMotion = () => reduced.matches && !userMotion;
   let offsets = [], lastTime = 0, time = 0, frame = 0, gl, program, uniforms, lost = false, dirty = true;
   let pulse = 0, pulseX = .5, pulseY = .5, scrollEnergy = 0;
@@ -39,6 +41,7 @@
   motionButton.addEventListener('click', () => {
     paused = !paused;
     userMotion = !paused;
+    try {localStorage.setItem('lenkov-motion',paused?'paused':'active');} catch {}
     dirty = true;
     syncMotionButton();
   });
@@ -79,15 +82,18 @@
     float smoothMin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
     float map(vec3 p){
       float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
-      p.xy=rot(.25+chapter*.85+sin(clock*.24)*.14+energy*.12)*p.xy;
-      p.xz=rot(.45+chapter*.7+sin(clock*.17)*.24+pointer.x*.25)*p.xz;
-      p.yz=rot(.15+sin(clock*.25)*.23+pointer.y*.16)*p.yz;
+      p.xy=rot(.25+chapter*.85+clock*.12+sin(clock*.6)*.22+energy*.12)*p.xy;
+      p.xz=rot(.45+chapter*.7+sin(clock*.43)*.42+pointer.x*.25)*p.xz;
+      p.yz=rot(.15+sin(clock*.55)*.32+pointer.y*.16)*p.yz;
       float radius=.91-.12*a+.2*b-.12*c;
       float thickness=.22+.035*a-.04*b;
-      vec3 q=p; float angle=atan(p.y,p.x);q.z-=.16*sin(angle*3.+clock*.26)*(1.-a*.65);
-      radius+=.025*sin(angle*3.-clock*.23)+ripple.z*.018;
+      vec3 q=p; float angle=atan(p.y,p.x);
+      q.z-=.24*sin(angle*3.+clock*.95)*(1.-a*.35);
+      q.z-=.06*sin(angle*2.-clock*.7);
+      radius+=.07*sin(angle*3.-clock*.8)+.025*sin(clock*1.15)+ripple.z*.035;
+      thickness*=1.+.12*sin(angle*2.+clock*1.1);
       float first=torus(q,radius,thickness);
-      vec3 q2=p; q2.xz=rot(.62+a*.68+b*.45)*q2.xz;q2.yz=rot(.5+b*.6)*q2.yz;
+      vec3 q2=p; q2.xz=rot(.62+a*.68+b*.45+sin(clock*.5)*.22)*q2.xz;q2.yz=rot(.5+b*.6+sin(clock*.65)*.16)*q2.yz;
       float second=torus(q2,radius-.04,thickness*.66)-.01;
       float blend=smoothMin(first,second,.12);
       float result=mix(first,blend,smoothstep(.1,.9,chapter));
@@ -98,7 +104,7 @@
     }
     vec3 normal(vec3 p){vec2 e=vec2(.0006,-.0006);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
     vec3 environment(vec3 d){
-      d.xz=rot(sin(clock*.16)*.3+energy*.2)*d.xz;
+      d.xz=rot(clock*.18+sin(clock*.55)*.3+energy*.2)*d.xz;
       vec3 col=vec3(.07,.09,.14);
       float strip=pow(max(0.,1.-abs(dot(d,normalize(vec3(.4,.7,.55))))),20.);
       col+=vec3(.48,.59,.82)*strip*1.35;
@@ -113,13 +119,35 @@
     vec3 background(vec2 p){
       float halo=exp(-length(p*vec2(1.,1.15))*2.8);
       vec3 col=mix(vec3(.025,.029,.038),vec3(.068,.082,.109),halo);
-      vec2 dust=uv*vec2(resolution.x/resolution.y,1.)*15.+vec2(clock*.009,clock*.014)+pointer*.07;
-      vec2 cell=floor(dust),f=fract(dust);float seed=hash(cell);
-      vec2 center=vec2(.15+seed*.7,.15+hash(cell+4.)*.7);
-      float star=1.-smoothstep(.007,.032,length(f-center));
-      col+=vec3(.11,.14,.19)*star*step(.89,seed)*(.65+.35*sin(clock*.8+seed*20.));
-      float ringDistance=abs(length(p*vec2(.75,1.))-.52-.025*sin(clock*.2));
-      col+=vec3(.028,.039,.056)*exp(-ringDistance*370.)*(.6+.4*sin(atan(p.y,p.x)*2.+clock*.16));
+      // Three depths of drifting particles; entirely procedural, no asset downloads.
+      for(int layer=0;layer<3;layer++){
+        float depth=float(layer),scale=12.+depth*7.;
+        vec2 dust=uv*vec2(resolution.x/resolution.y,1.)*scale;
+        dust+=vec2(clock*(.11+depth*.055),clock*(.17+depth*.06))+pointer*(.1+depth*.08);
+        vec2 cell=floor(dust),f=fract(dust);float seed=hash(cell+depth*13.);
+        vec2 center=vec2(.25+seed*.5,.25+hash(cell+4.)*.5);
+        center+=.13*vec2(sin(clock*.7+seed*30.),cos(clock*.6+seed*21.));
+        float distanceToStar=length(f-center);
+        float star=1.-smoothstep(.012,.052-depth*.009,distanceToStar);
+        float glow=exp(-distanceToStar*24.)*.16;
+        col+=vec3(.36,.5,.75)*(star+glow)*step(.78,seed)*(.7+.3*sin(clock*1.2+seed*20.))/(1.+depth*.4);
+      }
+      // Flowing orbital filaments with moving luminous beads and comet-like tails.
+      for(int orbit=0;orbit<3;orbit++){
+        float index=float(orbit);
+        vec2 q=rot(.3+index*.9+sin(clock*.22+index)*.2)*p;
+        q.y*=1.3+index*.25;
+        float angle=atan(q.y,q.x),radius=.48+index*.085;
+        radius+=.018*sin(angle*3.+clock*.7+index);
+        float distanceToLine=abs(length(q)-radius);
+        float phase=angle-clock*(.55+index*.18)+index*2.;
+        float sweep=pow(.5+.5*cos(phase),16.);
+        float thread=exp(-distanceToLine*650.);
+        float glow=exp(-distanceToLine*95.);
+        float beads=pow(max(0.,cos(phase*12.)),40.);
+        col+=vec3(.18,.31,.52)*(thread*(.14+sweep*.9)+glow*sweep*.2);
+        col+=vec3(.55,.72,1.)*beads*exp(-distanceToLine*350.)*(.25+sweep*.6);
+      }
       float wave=abs(length((uv-ripple.xy)*vec2(resolution.x/resolution.y,1.))-(1.-ripple.z)*1.3);
       col+=vec3(.075,.11,.17)*exp(-wave*100.)*ripple.z;
       return col;
