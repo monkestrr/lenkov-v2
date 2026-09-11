@@ -79,40 +79,34 @@
     uniform vec3 ripple;
     mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
     float torus(vec3 p,float r,float t){return length(vec2(length(p.xy)-r,p.z))-t;}
-    float smoothMin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
     float map(vec3 p){
       float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
-      p.xy=rot(.25+chapter*.85+clock*.12+sin(clock*.6)*.22+energy*.12)*p.xy;
-      p.xz=rot(.45+chapter*.7+sin(clock*.43)*.42+pointer.x*.25)*p.xz;
-      p.yz=rot(.15+sin(clock*.55)*.32+pointer.y*.16)*p.yz;
-      float radius=.91-.12*a+.2*b-.12*c;
-      float thickness=.22+.035*a-.04*b;
-      vec3 q=p; float angle=atan(p.y,p.x);
-      q.z-=.24*sin(angle*3.+clock*.95)*(1.-a*.35);
-      q.z-=.06*sin(angle*2.-clock*.7);
-      radius+=.07*sin(angle*3.-clock*.8)+.025*sin(clock*1.15)+ripple.z*.035;
-      thickness*=1.+.12*sin(angle*2.+clock*1.1);
-      float first=torus(q,radius,thickness);
-      vec3 q2=p; q2.xz=rot(.62+a*.68+b*.45+sin(clock*.5)*.22)*q2.xz;q2.yz=rot(.5+b*.6+sin(clock*.65)*.16)*q2.yz;
-      float second=torus(q2,radius-.04,thickness*.66)-.01;
-      float blend=smoothMin(first,second,.12);
-      float result=mix(first,blend,smoothstep(.1,.9,chapter));
-      vec3 q3=p; q3.yz=rot(1.5708)*q3.yz;q3.xz=rot(-.4)*q3.xz;
-      float third=torus(q3,.67,.10);
-      result=mix(result,smoothMin(result,third,.07),b*(1.-c*.7));
-      return result;
+      p.xy=rot(.25+chapter*.65+clock*.09+sin(clock*.45)*.14+energy*.08)*p.xy;
+      p.xz=rot(.4+chapter*.42+sin(clock*.36)*.3+pointer.x*.2)*p.xz;
+      p.yz=rot(.12+sin(clock*.42)*.22+pointer.y*.12)*p.yz;
+      // A single continuous tube: no intersecting surfaces or angular pinches.
+      // Smooth Cartesian warps avoid the singularity of polar displacement.
+      vec3 q=p;
+      float stretch=1.+.12*a-.06*b+.05*sin(clock*.5);
+      q.x/=stretch;q.y*=stretch;
+      q.z-=.14*sin(p.x*2.+clock*.65)*cos(p.y*1.8-clock*.4);
+      q.z-=.045*sin(p.y*2.5+clock*.55);
+      float radius=.86+.045*b-.025*c+.022*sin(clock*.75);
+      radius+=.028*sin(p.x*2.+p.y*1.5-clock*.6);
+      float thickness=.205+.015*sin(clock*.65)+.012*a;
+      // Conservative distance bound prevents marching through warped surfaces.
+      return torus(q,radius,thickness)/1.65;
     }
-    vec3 normal(vec3 p){vec2 e=vec2(.0006,-.0006);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
+    vec3 normal(vec3 p){vec2 e=vec2(.001,-.001);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
     vec3 environment(vec3 d){
       d.xz=rot(clock*.18+sin(clock*.55)*.3+energy*.2)*d.xz;
       vec3 col=vec3(.07,.09,.14);
-      float strip=pow(max(0.,1.-abs(dot(d,normalize(vec3(.4,.7,.55))))),20.);
-      col+=vec3(.48,.59,.82)*strip*1.35;
-      col+=vec3(1.1,1.14,1.2)*pow(max(0.,dot(d,normalize(vec3(-.7,.65,1.)))),9.);
-      col+=vec3(.65,.75,1.)*pow(max(0.,dot(d,normalize(vec3(.8,.15,-.6)))),18.);
-      col+=vec3(.68,.49,.32)*pow(max(0.,dot(d,normalize(vec3(-.2,-.65,.6)))),32.)*.5;
-      col+=vec3(1.4,1.55,1.7)*smoothstep(.91,.985,d.y);
-      col+=vec3(.7,.8,1.)*exp(-pow((d.x+.28)/.065,2.))*.6;
+      // Broad studio reflections give a satin finish instead of sharp chrome streaks.
+      col+=vec3(.55,.64,.79)*pow(max(0.,dot(d,normalize(vec3(-.7,.65,1.)))),5.);
+      col+=vec3(.3,.4,.6)*pow(max(0.,dot(d,normalize(vec3(.8,.15,-.6)))),7.);
+      col+=vec3(.24,.2,.18)*pow(max(0.,dot(d,normalize(vec3(-.2,-.65,.6)))),9.);
+      col+=vec3(.7,.78,.9)*smoothstep(.55,.97,d.y);
+      col+=vec3(.28,.35,.48)*exp(-pow((d.x+.28)/.22,2.));
       return col;
     }
     float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -168,7 +162,7 @@
         float edge=10.,closestT=t;bool hit=false;
         // Pixel-cone coverage smooths the silhouette, including rays that narrowly miss.
         float pixelCone=1.15/resolution.y;
-        for(int i=0;i<100;i++){
+        for(int i=0;i<144;i++){
           float d=map(ro+rd*t),coverage=d/max(.0001,t*pixelCone);
           if(coverage<edge){edge=coverage;closestT=t;}
           if(d<.00035){hit=true;closestT=t;break;}
@@ -177,7 +171,7 @@
         if(hit||edge<1.){
           vec3 pos=ro+rd*closestT,n=normal(pos),r=reflect(rd,n);
           float fres=pow(1.-max(0.,dot(-rd,n)),4.);
-          float ao=clamp(map(pos+n*.14)/.14,.22,1.);
+          float ao=clamp(map(pos+n*.14)*1.65/.14,.45,1.);
           vec3 metal=environment(r)*(.68+.32*ao);
           float diffuse=max(0.,dot(n,normalize(vec3(-.5,.9,1.))));
           metal+=vec3(.10,.12,.16)*diffuse+fres*vec3(.15,.22,.34);
