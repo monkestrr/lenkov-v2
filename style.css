@@ -44,3 +44,8 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 .motion-active h2.reveal-item:not(.in-view) .text-line>span{transform:translateY(115%) rotate(3deg);opacity:0}
 .motion-active h2.reveal-item.in-view .text-line>span{transform:translateY(0) rotate(0);opacity:1}
 .motion-active .body-copy.reveal-item{transition-duration:1.3s,1.5s,1.2s}
+
+.practice-list article:after,.fine-rule:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .45s;background:radial-gradient(240px circle at var(--light-x,50%) var(--light-y,50%),#b5d6ff19,transparent 75%);border-radius:inherit}
+.fine-rule{position:relative}.practice-list article.cursor-lit:after,.fine-rule.cursor-lit:after{opacity:1}
+.practice-list article.cursor-lit,.fine-rule.cursor-lit{border-top-color:#adcfff99}
+.email-button.cursor-lit{border-color:#d5e6ff;box-shadow:0 0 32px -12px #8abaff88;background-image:radial-gradient(140px circle at var(--light-x,50%) var(--light-y,50%),#aacfff26,transparent 80%)}

@@ -13,6 +13,7 @@
   try { const preference=localStorage.getItem('lenkov-motion'); if(preference!==null){paused=preference==='paused';userMotion=!paused;} } catch {}
   const reduceMotion = () => reduced.matches && !userMotion;
   let offsets = [], lastTime = 0, time = 0, frame = 0, gl, program, uniforms, lost = false, dirty = true;
+  let cursorActive=0, cursorLight=0;
   let pulse = 0, pulseX = .5, pulseY = .5, scrollEnergy = 0;
   const revealItems = [];
   const root = document.documentElement;
@@ -47,13 +48,13 @@
   });
   window.addEventListener('scroll', updateScroll, { passive: true });
   window.addEventListener('resize', measure, { passive: true });
-  window.addEventListener('pointermove', e => { if(e.pointerType !== 'touch') { pointerX = e.clientX / innerWidth * 2 - 1; pointerY = e.clientY / innerHeight * 2 - 1; } }, {passive:true});
+  window.addEventListener('pointermove', e => { if(e.pointerType !== 'touch') { cursorActive=1; pointerX = e.clientX / innerWidth * 2 - 1; pointerY = e.clientY / innerHeight * 2 - 1; } }, {passive:true});
   document.addEventListener('visibilitychange', () => { visible = !document.hidden; lastTime = 0; });
   window.addEventListener('pointerdown', e => {
     if (paused || reduceMotion() || e.target.closest('a,button,input')) return;
     pulse=1; pulseX=e.clientX/innerWidth; pulseY=1-e.clientY/innerHeight; dirty=true;
   }, {passive:true});
-  document.addEventListener('pointerleave', () => {pointerX=0;pointerY=0;});
+  document.addEventListener('pointerleave', () => {pointerX=0;pointerY=0;cursorActive=0;dirty=true;});
   if ('IntersectionObserver' in window) {
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
       entry.target.classList.toggle('in-view',entry.isIntersecting);
@@ -66,6 +67,16 @@
     el.addEventListener('pointermove',e=>{if(paused||reduceMotion()||e.pointerType==='touch')return;const r=el.getBoundingClientRect();el.style.setProperty('--magnet-x',`${(e.clientX-r.left-r.width/2)*.13}px`);el.style.setProperty('--magnet-y',`${(e.clientY-r.top-r.height/2)*.2}px`);});
     el.addEventListener('pointerleave',()=>{el.style.setProperty('--magnet-x','0px');el.style.setProperty('--magnet-y','0px');});
   });
+  document.querySelectorAll('.practice-list article,.email-button,.fine-rule').forEach(el=>{
+    el.addEventListener('pointermove',e=>{
+      if(e.pointerType==='touch')return;
+      const r=el.getBoundingClientRect();
+      el.style.setProperty('--light-x',`${e.clientX-r.left}px`);
+      el.style.setProperty('--light-y',`${e.clientY-r.top}px`);
+      el.classList.add('cursor-lit');
+    });
+    el.addEventListener('pointerleave',()=>el.classList.remove('cursor-lit'));
+  });
   const vertex = `attribute vec2 position; varying vec2 uv; void main(){ uv=position*.5+.5; gl_Position=vec4(position,0.,1.); }`;
   const fragment = `
     precision highp float;
@@ -76,18 +87,27 @@
     uniform float chapter;
     uniform float mobile;
     uniform float energy;
+    uniform float cursorLight;
     uniform vec3 ripple;
     mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
     float torus(vec3 p,float r,float t){return length(vec2(length(p.xy)-r,p.z))-t;}
+    float softUnion(float d1,float d2,float width){
+      float h=clamp(.5+.5*(d2-d1)/width,0.,1.);
+      return mix(d2,d1,h)-width*h*(1.-h);
+    }
+    float cursorGlow(){
+      vec2 cursorUV=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
+      vec2 delta=(uv-cursorUV)*vec2(resolution.x/resolution.y,1.);
+      return exp(-dot(delta,delta)*32.)*cursorLight;
+    }
     float map(vec3 p){
       float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
       p.xy=rot(.25+chapter*.65+clock*.09+sin(clock*.45)*.14+energy*.08)*p.xy;
       p.xz=rot(.4+chapter*.42+sin(clock*.36)*.3+pointer.x*.2)*p.xz;
       p.yz=rot(.12+sin(clock*.42)*.22+pointer.y*.12)*p.yz;
-      // A single continuous tube: no intersecting surfaces or angular pinches.
-      // Smooth Cartesian warps avoid the singularity of polar displacement.
+      // Smooth Cartesian warps and wide unions keep the changing silhouette rounded.
       vec3 q=p;
-      float stretch=1.+.12*a-.06*b+.05*sin(clock*.5);
+      float stretch=1.+.22*a-.18*b-.08*c+.05*sin(clock*.5);
       q.x/=stretch;q.y*=stretch;
       q.z-=.14*sin(p.x*2.+clock*.65)*cos(p.y*1.8-clock*.4);
       q.z-=.045*sin(p.y*2.5+clock*.55);
@@ -95,7 +115,14 @@
       radius+=.028*sin(p.x*2.+p.y*1.5-clock*.6);
       float thickness=.205+.015*sin(clock*.65)+.012*a;
       // Conservative distance bound prevents marching through warped surfaces.
-      return torus(q,radius,thickness)/1.65;
+      float first=torus(q,radius,thickness);
+      vec3 q2=p;q2.xz=rot(1.05+.2*sin(clock*.3))*q2.xz;
+      q2.yz=rot(.45+.15*sin(clock*.4))*q2.yz;
+      float second=torus(q2,.78,.18)+(1.-a)*2.+c*1.8;
+      float joined=softUnion(first,second,.28);
+      vec3 q3=p;q3.yz=rot(1.35)*q3.yz;q3.xz=rot(-.55)*q3.xz;
+      float third=torus(q3,.69,.155)+(1.-b)*2.+c*1.8;
+      return softUnion(joined,third,.24)/1.9;
     }
     vec3 normal(vec3 p){vec2 e=vec2(.001,-.001);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
     vec3 environment(vec3 d){
@@ -113,6 +140,7 @@
     vec3 background(vec2 p){
       float halo=exp(-length(p*vec2(1.,1.15))*2.8);
       vec3 col=mix(vec3(.025,.029,.038),vec3(.068,.082,.109),halo);
+      float light=cursorGlow();col+=vec3(.022,.04,.075)*light;
       // Three depths of drifting particles; entirely procedural, no asset downloads.
       for(int layer=0;layer<3;layer++){
         float depth=float(layer),scale=12.+depth*7.;
@@ -124,7 +152,7 @@
         float distanceToStar=length(f-center);
         float star=1.-smoothstep(.012,.052-depth*.009,distanceToStar);
         float glow=exp(-distanceToStar*24.)*.16;
-        col+=vec3(.36,.5,.75)*(star+glow)*step(.78,seed)*(.7+.3*sin(clock*1.2+seed*20.))/(1.+depth*.4);
+        col+=vec3(.36,.5,.75)*(star+glow)*(1.+light*3.5)*step(.78,seed)*(.7+.3*sin(clock*1.2+seed*20.))/(1.+depth*.4);
       }
       // Flowing orbital filaments with moving luminous beads and comet-like tails.
       for(int orbit=0;orbit<3;orbit++){
@@ -139,7 +167,7 @@
         float thread=exp(-distanceToLine*650.);
         float glow=exp(-distanceToLine*95.);
         float beads=pow(max(0.,cos(phase*12.)),40.);
-        col+=vec3(.18,.31,.52)*(thread*(.14+sweep*.9)+glow*sweep*.2);
+        col+=vec3(.18,.31,.52)*(thread*(.14+sweep*.9)+glow*sweep*.2)*(1.+light*1.5);
         col+=vec3(.55,.72,1.)*beads*exp(-distanceToLine*350.)*(.25+sweep*.6);
       }
       float wave=abs(length((uv-ripple.xy)*vec2(resolution.x/resolution.y,1.))-(1.-ripple.z)*1.3);
@@ -171,8 +199,12 @@
         if(hit||edge<1.){
           vec3 pos=ro+rd*closestT,n=normal(pos),r=reflect(rd,n);
           float fres=pow(1.-max(0.,dot(-rd,n)),4.);
-          float ao=clamp(map(pos+n*.14)*1.65/.14,.45,1.);
+          float ao=clamp(map(pos+n*.14)*1.9/.14,.45,1.);
           vec3 metal=environment(r)*(.68+.32*ao);
+          vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-pos);
+          float cursorDiffuse=max(0.,dot(n,cursorDirection));
+          float cursorSpec=pow(max(0.,dot(n,normalize(cursorDirection-rd))),18.);
+          metal+=vec3(.28,.42,.67)*(cursorDiffuse*.28+cursorSpec*.65)*cursorGlow();
           float diffuse=max(0.,dot(n,normalize(vec3(-.5,.9,1.))));
           metal+=vec3(.10,.12,.16)*diffuse+fres*vec3(.15,.22,.34);
           vec3 iridescence=.5+.5*cos(6.28318*(dot(n,-rd)*1.5+vec3(0.,.12,.25))+chapter*.5);
@@ -200,7 +232,7 @@
     if(!gl.getProgramParameter(program,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
     gl.useProgram(program);const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
     const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-    uniforms=Object.fromEntries(['resolution','pointer','clock','chapter','mobile','energy','ripple'].map(key=>[key,gl.getUniformLocation(program,key)]));
+    uniforms=Object.fromEntries(['resolution','pointer','clock','chapter','mobile','energy','ripple','cursorLight'].map(key=>[key,gl.getUniformLocation(program,key)]));
     resize();scene.classList.add('ready');lost=false;
   }
   function resize() { dirty=true;if(!gl || !program) return;const cap=innerWidth<700?1400000:2800000;const ratio=Math.min(Math.max(devicePixelRatio||1,1.25),2,Math.sqrt(cap/(innerWidth*innerHeight)));canvas.width=Math.round(innerWidth*ratio);canvas.height=Math.round(innerHeight*ratio);gl.viewport(0,0,canvas.width,canvas.height); }
@@ -211,6 +243,9 @@
     if(!visible || lost) return;
     const dt=Math.min(.05, lastTime?(now-lastTime)/1000:.016);lastTime=now;
     const quiet=reduceMotion();
+    const lightTarget=quiet||paused?0:cursorActive;
+    if(Math.abs(lightTarget-cursorLight)>.001)dirty=true;
+    cursorLight+=(lightTarget-cursorLight)*(1-Math.exp(-dt*8));
     const moving=Math.abs(targetScroll-scroll)>.0001 || Math.abs((quiet?0:pointerX)-px)>.0001 || Math.abs((quiet?0:pointerY)-py)>.0001;
     if((paused || quiet) && !moving && !dirty) return;
     if(!paused && !quiet)time+=dt;
@@ -220,7 +255,7 @@
     scroll=quiet?targetScroll:scroll+(targetScroll-scroll)*follow;
     px+=((quiet?0:pointerX)-px)*follow;py+=((quiet?0:pointerY)-py)*follow;
     if(!gl || !program) return;
-    gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.pointer,px,py);gl.uniform1f(uniforms.clock,time);gl.uniform1f(uniforms.chapter,scroll);gl.uniform1f(uniforms.mobile,innerWidth<600?1:0);gl.uniform1f(uniforms.energy,scrollEnergy);gl.uniform3f(uniforms.ripple,pulseX,pulseY,pulse);gl.drawArrays(gl.TRIANGLES,0,6);dirty=false;
+    gl.uniform2f(uniforms.resolution,canvas.width,canvas.height);gl.uniform2f(uniforms.pointer,px,py);gl.uniform1f(uniforms.clock,time);gl.uniform1f(uniforms.chapter,scroll);gl.uniform1f(uniforms.mobile,innerWidth<600?1:0);gl.uniform1f(uniforms.energy,scrollEnergy);gl.uniform1f(uniforms.cursorLight,cursorLight);gl.uniform3f(uniforms.ripple,pulseX,pulseY,pulse);gl.drawArrays(gl.TRIANGLES,0,6);dirty=false;
   }
   try{init();}catch(error){console.warn('3D unavailable; showing static artwork.',error);gl=null;program=null;scene.classList.remove('ready');}
   measure();scroll=targetScroll;frame=requestAnimationFrame(draw);
