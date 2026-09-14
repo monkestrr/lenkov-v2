@@ -59,7 +59,7 @@
     const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
       entry.target.classList.toggle('in-view',entry.isIntersecting);
     }),{threshold:.12,rootMargin:'0px 0px -55px 0px'});
-    document.querySelectorAll('.chapter-copy > *, .practice-content > .eyebrow, .practice-content > h2, .practice-list article, .contact-content > *').forEach((el,i)=>{
+    document.querySelectorAll('.chapter-copy > *, .practice-content > .eyebrow, .practice-content > h2, .practice-list article, .tool-deck, .contact-content > *').forEach((el,i)=>{
       el.classList.add('reveal-item');el.style.setProperty('--reveal-delay',`${(i%4)*80}ms`);observer.observe(el);revealItems.push(el);
     });
   }
@@ -67,7 +67,7 @@
     el.addEventListener('pointermove',e=>{if(paused||reduceMotion()||e.pointerType==='touch')return;const r=el.getBoundingClientRect();el.style.setProperty('--magnet-x',`${(e.clientX-r.left-r.width/2)*.13}px`);el.style.setProperty('--magnet-y',`${(e.clientY-r.top-r.height/2)*.2}px`);});
     el.addEventListener('pointerleave',()=>{el.style.setProperty('--magnet-x','0px');el.style.setProperty('--magnet-y','0px');});
   });
-  document.querySelectorAll('.practice-list article,.email-button,.fine-rule').forEach(el=>{
+  document.querySelectorAll('.email-button,.fine-rule').forEach(el=>{
     el.addEventListener('pointermove',e=>{
       if(e.pointerType==='touch')return;
       const r=el.getBoundingClientRect();
@@ -91,10 +91,6 @@
     uniform vec3 ripple;
     mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
     float torus(vec3 p,float r,float t){return length(vec2(length(p.xy)-r,p.z))-t;}
-    float softUnion(float d1,float d2,float width){
-      float h=clamp(.5+.5*(d2-d1)/width,0.,1.);
-      return mix(d2,d1,h)-width*h*(1.-h);
-    }
     float cursorGlow(){
       vec2 cursorUV=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
       vec2 delta=(uv-cursorUV)*vec2(resolution.x/resolution.y,1.);
@@ -107,7 +103,7 @@
       p.yz=rot(.12+sin(clock*.42)*.22+pointer.y*.12)*p.yz;
       // Smooth Cartesian warps and wide unions keep the changing silhouette rounded.
       vec3 q=p;
-      float stretch=1.+.22*a-.18*b-.08*c+.05*sin(clock*.5);
+      float stretch=1.+.12*a-.06*b+.05*sin(clock*.5);
       q.x/=stretch;q.y*=stretch;
       q.z-=.14*sin(p.x*2.+clock*.65)*cos(p.y*1.8-clock*.4);
       q.z-=.045*sin(p.y*2.5+clock*.55);
@@ -115,14 +111,7 @@
       radius+=.028*sin(p.x*2.+p.y*1.5-clock*.6);
       float thickness=.205+.015*sin(clock*.65)+.012*a;
       // Conservative distance bound prevents marching through warped surfaces.
-      float first=torus(q,radius,thickness);
-      vec3 q2=p;q2.xz=rot(1.05+.2*sin(clock*.3))*q2.xz;
-      q2.yz=rot(.45+.15*sin(clock*.4))*q2.yz;
-      float second=torus(q2,.78,.18)+(1.-a)*2.+c*1.8;
-      float joined=softUnion(first,second,.28);
-      vec3 q3=p;q3.yz=rot(1.35)*q3.yz;q3.xz=rot(-.55)*q3.xz;
-      float third=torus(q3,.69,.155)+(1.-b)*2.+c*1.8;
-      return softUnion(joined,third,.24)/1.9;
+      return torus(q,radius,thickness)/1.65;
     }
     vec3 normal(vec3 p){vec2 e=vec2(.001,-.001);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
     vec3 environment(vec3 d){
@@ -199,7 +188,7 @@
         if(hit||edge<1.){
           vec3 pos=ro+rd*closestT,n=normal(pos),r=reflect(rd,n);
           float fres=pow(1.-max(0.,dot(-rd,n)),4.);
-          float ao=clamp(map(pos+n*.14)*1.9/.14,.45,1.);
+          float ao=clamp(map(pos+n*.14)*1.65/.14,.45,1.);
           vec3 metal=environment(r)*(.68+.32*ao);
           vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-pos);
           float cursorDiffuse=max(0.,dot(n,cursorDirection));

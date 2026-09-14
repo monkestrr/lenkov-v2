@@ -49,3 +49,30 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 .fine-rule{position:relative}.practice-list article.cursor-lit:after,.fine-rule.cursor-lit:after{opacity:1}
 .practice-list article.cursor-lit,.fine-rule.cursor-lit{border-top-color:#adcfff99}
 .email-button.cursor-lit{border-color:#d5e6ff;box-shadow:0 0 32px -12px #8abaff88;background-image:radial-gradient(140px circle at var(--light-x,50%) var(--light-y,50%),#aacfff26,transparent 80%)}
+
+/* A stable, quiet skills surface. Only the tool entrance moves. */
+.practice-content{width:56%;max-width:780px;background:none}
+.practice h2{font-size:clamp(38px,4.2vw,66px);letter-spacing:-.05em;margin-bottom:34px}
+.practice-list{max-width:none;margin-top:0}
+.practice-list article,.practice-list article:hover{padding:26px;border:1px solid #a6bce51c;border-radius:18px;background:#0d1018ed;transition:border-color .4s;box-shadow:0 16px 45px #00000018}
+.practice-list article:before,.practice-list article:after{display:none}
+.practice-list article:hover{border-color:#a6bce536}
+.practice-list .editing-card,.practice-list .editing-card:hover{padding:32px 32px 24px;background:linear-gradient(135deg,#171b29f7,#0c1018f5)}
+.practice-list .skill-kicker{display:block;font-size:11px;letter-spacing:.15em;color:#a7b4cb;margin:0 0 15px}
+.practice-list h3{font-size:22px;font-weight:400;letter-spacing:-.025em;margin:0 0 12px;line-height:1.2}
+.practice-list .editing-card h3{font-size:clamp(29px,2.7vw,40px);letter-spacing:-.045em}
+.practice-list p{font-size:15px;line-height:1.65;color:#aeb6c7;margin:0}
+.practice-secondary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.practice-secondary h3{font-size:19px;line-height:1.3}
+.practice-secondary p{font-size:14px}
+.tool-deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:32px;padding-top:28px;border-top:1px solid #b2c5ed1c;perspective:700px}
+.tool-item{display:flex;align-items:center;flex-direction:column;gap:12px;text-align:center}
+.tool-icon{width:64px;height:64px;filter:drop-shadow(0 10px 12px #0005)}
+.tool-icon svg{width:100%;height:100%;display:block}
+.tool-item>span{font-size:12px;line-height:1.4;color:#c0c9da}
+.motion-active .tool-deck.reveal-item{opacity:1;transform:none;filter:none}
+.motion-active .tool-item{transition:transform 1.25s cubic-bezier(.16,1,.3,1),opacity .8s;transition-delay:var(--tool-delay)}
+.motion-active .tool-deck:not(.in-view) .tool-item{opacity:0;transform:translate(var(--launch-x),48px) rotate(var(--launch-angle)) scale(.65)}
+.motion-active .tool-deck.in-view .tool-item{opacity:1;transform:translate(0,0) rotate(0) scale(1)}
+@media(max-width:1000px){.practice-content{width:65%}.practice-list .editing-card,.practice-list .editing-card:hover{padding:25px}.practice-secondary{grid-template-columns:1fr}.practice-list article,.practice-list article:hover{padding:22px}}
+@media(max-width:600px){.practice-content{width:100%;padding:0}.practice{padding-top:32svh}.practice h2{font-size:clamp(34px,9vw,48px)}.practice-list .editing-card,.practice-list .editing-card:hover{padding:24px 18px}.practice-secondary{grid-template-columns:1fr}.tool-deck{gap:8px}.tool-icon{width:54px;height:54px}.tool-item>span{font-size:11px}.practice-list .editing-card h3{font-size:30px}}
