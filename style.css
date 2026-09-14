@@ -76,3 +76,5 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 .motion-active .tool-deck.in-view .tool-item{opacity:1;transform:translate(0,0) rotate(0) scale(1)}
 @media(max-width:1000px){.practice-content{width:65%}.practice-list .editing-card,.practice-list .editing-card:hover{padding:25px}.practice-secondary{grid-template-columns:1fr}.practice-list article,.practice-list article:hover{padding:22px}}
 @media(max-width:600px){.practice-content{width:100%;padding:0}.practice{padding-top:32svh}.practice h2{font-size:clamp(34px,9vw,48px)}.practice-list .editing-card,.practice-list .editing-card:hover{padding:24px 18px}.practice-secondary{grid-template-columns:1fr}.tool-deck{gap:8px}.tool-icon{width:54px;height:54px}.tool-item>span{font-size:11px}.practice-list .editing-card h3{font-size:30px}}
+
+.tool-icon img{display:block;width:100%;height:100%;object-fit:contain}.tool-capcut{display:flex;align-items:center;justify-content:center;background:#f4f4f2;border-radius:14px;padding:11px}.tool-resolve img{transform:scale(1.14)}
