@@ -34,11 +34,12 @@
   function syncMotionButton() {
     root.classList.toggle('motion-active', !paused && !reduceMotion());
     motionButton.setAttribute('aria-pressed', String(paused));
-    motionButton.setAttribute('aria-label', paused ? 'Resume automatic motion' : 'Pause automatic motion');
-    document.getElementById('motion-label').textContent = paused ? 'Resume motion' : 'Pause motion';
+    motionButton.setAttribute('aria-label', window.siteCopy ? window.siteCopy(paused?'resumeAria':'pauseAria') : (paused?'Resume automatic motion':'Pause automatic motion'));
+    document.getElementById('motion-label').textContent = window.siteCopy ? window.siteCopy(paused?'resume':'pause') : (paused?'Resume motion':'Pause motion');
     motionButton.querySelector('.motion-icon').textContent = paused ? '▷' : 'Ⅱ';
   }
   syncMotionButton();
+  document.addEventListener('languagechange',()=>{syncMotionButton();measure();});
   motionButton.addEventListener('click', () => {
     paused = !paused;
     userMotion = !paused;
