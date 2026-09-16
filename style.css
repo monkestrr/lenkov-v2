@@ -78,3 +78,17 @@ html:not(.motion-active) .hero-scroll span{animation-play-state:paused}
 @media(max-width:600px){.practice-content{width:100%;padding:0}.practice{padding-top:32svh}.practice h2{font-size:clamp(34px,9vw,48px)}.practice-list .editing-card,.practice-list .editing-card:hover{padding:24px 18px}.practice-secondary{grid-template-columns:1fr}.tool-deck{gap:8px}.tool-icon{width:54px;height:54px}.tool-item>span{font-size:11px}.practice-list .editing-card h3{font-size:30px}}
 
 .tool-icon img{display:block;width:100%;height:100%;object-fit:contain}.tool-capcut{display:flex;align-items:center;justify-content:center;background:#f4f4f2;border-radius:14px;padding:11px}.tool-resolve img{transform:scale(1.14)}
+
+/* Services offering */
+.practice-list .video-services,.practice-list .code-services{margin-top:14px}
+.practice-list .code-services,.practice-list .code-services:hover{padding:32px;background:linear-gradient(140deg,#121d25f5,#0c1119fa)}
+.practice-list .code-services h3{font-size:clamp(29px,2.7vw,40px);letter-spacing:-.045em}
+.service-list{list-style:none;padding:0;margin:24px 0}
+.service-list li{display:flex;align-items:baseline;gap:18px;padding:18px 0;border-top:1px solid #a6bce51c}
+.service-list li>span{font-size:11px;color:#7c8aa2;flex:0 0 18px}
+.practice-list h4{font-weight:400;font-size:17px;line-height:1.4;margin:0 0 7px;color:#e3e8f1;letter-spacing:-.02em}
+.service-list p,.code-offerings p{font-size:14px}
+.service-link{display:inline-flex;align-items:center;gap:20px;font-size:14px;line-height:1.5;color:#c5d3e9;padding:8px 0;border-bottom:1px solid #b5c8e94d;transition:color .25s,border-color .25s}
+.service-link:hover{color:#fff;border-color:#e2ebff}.service-link span{font-size:18px}
+.code-offerings{display:grid;grid-template-columns:1fr 1fr;gap:26px;padding:26px 0;margin-top:26px;border-top:1px solid #a6bce526}
+@media(max-width:600px){.practice-list .code-services,.practice-list .code-services:hover{padding:24px 18px}.code-offerings{grid-template-columns:1fr;gap:24px}.service-list li{gap:12px}.service-link{font-size:13px}}
