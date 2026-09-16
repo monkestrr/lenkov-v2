@@ -91,7 +91,6 @@
     uniform float cursorLight;
     uniform vec3 ripple;
     mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
-    float torus(vec3 p,float r,float t){return length(vec2(length(p.xy)-r,p.z))-t;}
     float cursorGlow(){
       vec2 cursorUV=vec2(pointer.x*.5+.5,.5-pointer.y*.5);
       vec2 delta=(uv-cursorUV)*vec2(resolution.x/resolution.y,1.);
@@ -99,31 +98,38 @@
     }
     float map(vec3 p){
       float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
-      p.xy=rot(.25+chapter*.65+clock*.09+sin(clock*.45)*.14+energy*.08)*p.xy;
-      p.xz=rot(.4+chapter*.42+sin(clock*.36)*.3+pointer.x*.2)*p.xz;
-      p.yz=rot(.12+sin(clock*.42)*.22+pointer.y*.12)*p.yz;
-      // Smooth Cartesian warps and wide unions keep the changing silhouette rounded.
-      vec3 q=p;
-      float stretch=1.+.12*a-.06*b+.05*sin(clock*.5);
-      q.x/=stretch;q.y*=stretch;
-      q.z-=.14*sin(p.x*2.+clock*.65)*cos(p.y*1.8-clock*.4);
-      q.z-=.045*sin(p.y*2.5+clock*.55);
-      float radius=.86+.045*b-.025*c+.022*sin(clock*.75);
-      radius+=.028*sin(p.x*2.+p.y*1.5-clock*.6);
-      float thickness=.205+.015*sin(clock*.65)+.012*a;
-      // Conservative distance bound prevents marching through warped surfaces.
-      return torus(q,radius,thickness)/1.65;
+      // Keep the opening readable in every chapter instead of turning edge-on.
+      p.xy=rot(.18+chapter*.38+clock*.045+sin(clock*.27)*.09)*p.xy;
+      p.xz=rot(.28+.24*sin(chapter*1.25)+sin(clock*.23)*.16+pointer.x*.14)*p.xz;
+      p.yz=rot(-.18+.15*sin(clock*.29)+pointer.y*.1)*p.yz;
+      float stretch=1.06+.05*a-.04*b+.018*sin(clock*.38);
+      p.x/=stretch;p.y*=stretch;
+      float angle=atan(p.y,p.x);
+      // A closed, softly folded band: an asymmetric spine and an elliptical section.
+      // All angular terms are periodic; the half-turn section is identical at the seam.
+      float radius=.77+.075*cos(2.*angle-.65)+.035*sin(3.*angle+.4);
+      radius+=.012*sin(clock*.45)*cos(2.*angle);
+      float rise=.20*sin(2.*angle+.3)+.055*cos(angle-.4);
+      rise+=.02*sin(clock*.4)*sin(angle);
+      vec2 section=vec2(length(p.xy)-radius,p.z-rise);
+      float twist=angle*.5+.32*sin(angle)+.22+.08*sin(clock*.32)+.08*a-.06*c;
+      section=rot(twist)*section;
+      float width=.25+.035*cos(angle-.6)+.01*sin(clock*.5);
+      float depth=.09+.008*sin(angle+.5);
+      // Underestimate distance after the warp so rays cannot skip the surface.
+      return (length(section/vec2(width,depth))-1.)*depth/1.8;
     }
     vec3 normal(vec3 p){vec2 e=vec2(.001,-.001);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
     vec3 environment(vec3 d){
-      d.xz=rot(clock*.18+sin(clock*.55)*.3+energy*.2)*d.xz;
-      vec3 col=vec3(.07,.09,.14);
-      // Broad studio reflections give a satin finish instead of sharp chrome streaks.
-      col+=vec3(.55,.64,.79)*pow(max(0.,dot(d,normalize(vec3(-.7,.65,1.)))),5.);
-      col+=vec3(.3,.4,.6)*pow(max(0.,dot(d,normalize(vec3(.8,.15,-.6)))),7.);
-      col+=vec3(.24,.2,.18)*pow(max(0.,dot(d,normalize(vec3(-.2,-.65,.6)))),9.);
-      col+=vec3(.7,.78,.9)*smoothstep(.55,.97,d.y);
-      col+=vec3(.28,.35,.48)*exp(-pow((d.x+.28)/.22,2.));
+      d.xz=rot(.12*sin(clock*.18))*d.xz;
+      vec3 col=vec3(.055,.07,.10);
+      // Stable studio softboxes reveal the fold with long, feathered highlights.
+      col+=vec3(.7,.77,.9)*pow(max(0.,dot(d,normalize(vec3(-.55,.75,1.)))),7.);
+      col+=vec3(.28,.4,.62)*pow(max(0.,dot(d,normalize(vec3(.8,.1,-.5)))),9.);
+      col+=vec3(.32,.27,.24)*pow(max(0.,dot(d,normalize(vec3(-.3,-.7,.55)))),6.);
+      col+=vec3(.65,.73,.86)*smoothstep(.62,.98,d.y);
+      float strip=exp(-pow((d.x+.3)/.14,2.))*smoothstep(-.5,.6,d.y);
+      col+=vec3(.62,.7,.84)*strip;
       return col;
     }
     float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -180,7 +186,7 @@
         float edge=10.,closestT=t;bool hit=false;
         // Pixel-cone coverage smooths the silhouette, including rays that narrowly miss.
         float pixelCone=1.15/resolution.y;
-        for(int i=0;i<144;i++){
+        for(int i=0;i<160;i++){
           float d=map(ro+rd*t),coverage=d/max(.0001,t*pixelCone);
           if(coverage<edge){edge=coverage;closestT=t;}
           if(d<.00035){hit=true;closestT=t;break;}
@@ -189,7 +195,7 @@
         if(hit||edge<1.){
           vec3 pos=ro+rd*closestT,n=normal(pos),r=reflect(rd,n);
           float fres=pow(1.-max(0.,dot(-rd,n)),4.);
-          float ao=clamp(map(pos+n*.14)*1.65/.14,.45,1.);
+          float ao=clamp(map(pos+n*.14)*1.8/.14,.5,1.);
           vec3 metal=environment(r)*(.68+.32*ao);
           vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-pos);
           float cursorDiffuse=max(0.,dot(n,cursorDirection));
