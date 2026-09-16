@@ -1,0 +1,43 @@
+/* Quiet editorial accents, shared by all three languages. */
+:root{--font-body:"Segoe UI",Arial,Helvetica,sans-serif;--font-editorial:Georgia,"Times New Roman",serif;--font-detail:"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+body{font-family:var(--font-body);font-weight:400}
+h1,h2,h3,h4{font-kerning:normal;text-rendering:optimizeLegibility}
+h2,h3,h4{text-wrap:balance}
+.body-copy,.practice-list p{ text-wrap:pretty }
+.hero-copy h1{font-family:Arial,Helvetica,sans-serif;font-size:clamp(58px,9.7vw,163px);letter-spacing:-.065em;line-height:1.15}
+.hero-copy h1 span{font-family:var(--font-editorial);font-style:italic;letter-spacing:-.065em;font-weight:400;color:#bcc9e1;padding-right:.14em}
+.motion-active .hero-copy h1 span{background-image:linear-gradient(105deg,#9daecb 12%,#e9edf3 48%,#a3b5d5 80%);animation-duration:18s}
+.hero-caption>p:first-child{line-height:1.4;letter-spacing:-.025em;font-weight:300}
+.hero-caption{padding-bottom:22px;border-bottom:1px solid #c8d6ef21;margin-bottom:16px}
+.micro,.eyebrow,.skill-kicker,.fine-rule,.chapter-nav span,.service-list li>span{font-family:var(--font-detail);font-weight:400;font-variant-numeric:tabular-nums}
+.micro{letter-spacing:.055em}
+.eyebrow{align-items:center;font-size:10px;letter-spacing:.1em;line-height:1.7;gap:16px;color:#a9b5c9}
+.eyebrow>span{color:#b9cae5;font-size:10px;letter-spacing:.01em;white-space:nowrap}
+.eyebrow>span:after{content:"";display:inline-block;width:28px;height:1px;margin:0 0 .3em 15px;background:linear-gradient(90deg,#b9cae573,#b9cae510)}
+h2{font-weight:300;line-height:1.13;letter-spacing:-.055em}
+h2 em,.practice-list h3 em{font-family:var(--font-editorial);font-weight:400;letter-spacing:-.045em;color:#b9c9e8}
+.text-line{padding:.05em .16em .19em .035em;margin:-.05em -.16em -.19em -.035em}
+.text-line + .text-line{margin-top:.01em}
+.body-copy{font-size:17px;line-height:1.85;letter-spacing:.003em;color:#b9c0cd}
+.fine-rule{font-size:10px;line-height:1.8;border-top-color:#b7c9e52a}
+.practice h2{line-height:1.15;font-weight:300;letter-spacing:-.045em;margin-bottom:42px}
+.practice-list .skill-kicker{font-size:10px;line-height:1.8;letter-spacing:.12em;color:#99accb;display:flex;align-items:center;gap:12px}
+.practice-list .skill-kicker:before{content:"";width:5px;height:5px;flex:0 0 5px;border:1px solid #bed1f1a6;transform:rotate(45deg)}
+.practice-list h3{line-height:1.3;font-weight:300;letter-spacing:-.03em}
+.practice-list .editing-card h3,.practice-list .code-services h3{font-size:clamp(29px,2.7vw,42px);line-height:1.26;letter-spacing:-.035em;margin-bottom:18px}
+.practice-list h3 em{padding-right:.08em}
+.practice-list h4{font-size:18px;letter-spacing:-.02em;line-height:1.45;color:#e0e6ef}
+.practice-list p{line-height:1.8;color:#aab6ca}
+.service-list li{padding:21px 0;gap:20px}
+.service-list li>span{color:#92a7c9;font-size:10px}
+.service-link{font-size:13px;letter-spacing:.01em;border-bottom-color:#b5c8e930}
+.contact h2{line-height:1.15;letter-spacing:-.055em}
+.contact-form label>span{font-size:12px;letter-spacing:.025em;color:#b8c7dd}
+.form-note{font-size:11px;line-height:1.8}
+.direct-label{font-size:12px;letter-spacing:.025em}
+.socials{letter-spacing:.02em}
+@media(min-width:601px){.hero-copy{margin-top:clamp(200px,30svh,460px)}}
+@media(min-width:901px){.hero-caption{max-width:98%}}
+@media(max-width:900px){.hero-copy h1{font-size:9.5vw}.body-copy{font-size:16px}}
+@media(max-width:600px){.hero-copy h1{font-size:17.3vw;line-height:1.08;letter-spacing:-.065em}.hero-copy h1 span{line-height:1.18}.hero-caption{padding-bottom:19px;margin-bottom:16px}.hero-caption>p:first-child{font-size:20px}.eyebrow{font-size:9px;gap:12px;letter-spacing:.065em}.eyebrow>span:after{width:18px;margin-left:10px}.body-copy{font-size:15px;line-height:1.8}.fine-rule{font-size:9px}.practice h2{margin-bottom:30px}.practice-list .skill-kicker{font-size:9px;letter-spacing:.085em}.practice-list .editing-card h3,.practice-list .code-services h3{font-size:29px}.practice-list h4{font-size:17px}.service-list li{gap:14px;padding:19px 0}.contact .eyebrow{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.motion-active .hero-copy h1 span{animation:none}}
