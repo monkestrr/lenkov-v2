@@ -96,41 +96,42 @@
       vec2 delta=(uv-cursorUV)*vec2(resolution.x/resolution.y,1.);
       return exp(-dot(delta,delta)*32.)*cursorLight;
     }
-    float map(vec3 p){
-      float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
-      // Keep the opening readable in every chapter instead of turning edge-on.
-      p.xy=rot(.18+chapter*.38+clock*.045+sin(clock*.27)*.09)*p.xy;
-      p.xz=rot(.28+.24*sin(chapter*1.25)+sin(clock*.23)*.16+pointer.x*.14)*p.xz;
-      p.yz=rot(-.18+.15*sin(clock*.29)+pointer.y*.1)*p.yz;
-      float stretch=1.06+.05*a-.04*b+.018*sin(clock*.38);
-      p.x/=stretch;p.y*=stretch;
-      float angle=atan(p.y,p.x);
-      // A closed, softly folded band: an asymmetric spine and an elliptical section.
-      // All angular terms are periodic; the half-turn section is identical at the seam.
-      float radius=.77+.075*cos(2.*angle-.65)+.035*sin(3.*angle+.4);
-      radius+=.012*sin(clock*.45)*cos(2.*angle);
-      float rise=.20*sin(2.*angle+.3)+.055*cos(angle-.4);
-      rise+=.02*sin(clock*.4)*sin(angle);
-      vec2 section=vec2(length(p.xy)-radius,p.z-rise);
-      float twist=angle*.5+.32*sin(angle)+.22+.08*sin(clock*.32)+.08*a-.06*c;
-      section=rot(twist)*section;
-      float width=.25+.035*cos(angle-.6)+.01*sin(clock*.5);
-      float depth=.09+.008*sin(angle+.5);
-      // Underestimate distance after the warp so rays cannot skip the surface.
-      return (length(section/vec2(width,depth))-1.)*depth/1.8;
+    float noiseHash(vec3 p){
+      p=fract(p*.3183099+vec3(.1,.2,.3));p*=17.;
+      return fract(p.x*p.y*p.z*(p.x+p.y+p.z));
     }
-    vec3 normal(vec3 p){vec2 e=vec2(.001,-.001);return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx));}
-    vec3 environment(vec3 d){
-      d.xz=rot(.12*sin(clock*.18))*d.xz;
-      vec3 col=vec3(.055,.07,.10);
-      // Stable studio softboxes reveal the fold with long, feathered highlights.
-      col+=vec3(.7,.77,.9)*pow(max(0.,dot(d,normalize(vec3(-.55,.75,1.)))),7.);
-      col+=vec3(.28,.4,.62)*pow(max(0.,dot(d,normalize(vec3(.8,.1,-.5)))),9.);
-      col+=vec3(.32,.27,.24)*pow(max(0.,dot(d,normalize(vec3(-.3,-.7,.55)))),6.);
-      col+=vec3(.65,.73,.86)*smoothstep(.62,.98,d.y);
-      float strip=exp(-pow((d.x+.3)/.14,2.))*smoothstep(-.5,.6,d.y);
-      col+=vec3(.62,.7,.84)*strip;
-      return col;
+    float noise3(vec3 p){
+      vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+      return mix(mix(mix(noiseHash(i),noiseHash(i+vec3(1,0,0)),f.x),
+                     mix(noiseHash(i+vec3(0,1,0)),noiseHash(i+vec3(1,1,0)),f.x),f.y),
+                 mix(mix(noiseHash(i+vec3(0,0,1)),noiseHash(i+vec3(1,0,1)),f.x),
+                     mix(noiseHash(i+vec3(0,1,1)),noiseHash(i+vec3(1,1,1)),f.x),f.y),f.z);
+    }
+    float clouds(vec3 p){
+      float value=0.,amplitude=.55;
+      for(int octave=0;octave<4;octave++){
+        value+=amplitude*noise3(p);p=p*2.03+vec3(7.1,3.7,1.8);amplitude*=.48;
+      }
+      return value;
+    }
+    vec3 planetSurface(vec3 n,vec3 rd){
+      // Rotate a seamless three-dimensional cloud field on a true sphere.
+      vec3 q=n;q.xy=rot(-.38+pointer.y*.06)*q.xy;
+      q.xz=rot(clock*.075+chapter*.3+pointer.x*.12)*q.xz;
+      float flow=clouds(q*3.1+vec3(0.,clock*.008,0.));
+      float bands=.5+.5*sin(q.y*21.+flow*4.+sin(q.x*3.)*.6);
+      float mist=clouds(q*7.5+flow*1.4);
+      vec3 albedo=mix(vec3(.16,.23,.32),vec3(.34,.43,.54),smoothstep(.1,.9,bands));
+      albedo=mix(albedo,vec3(.56,.62,.69),smoothstep(.48,.75,mist)*.24);
+      vec3 light=normalize(vec3(-.7,.85,1.1));
+      float sun=max(0.,dot(n,light));
+      float rim=pow(1.-max(0.,dot(n,-rd)),3.5);
+      float spec=pow(max(0.,dot(n,normalize(light-rd))),34.);
+      vec3 color=albedo*(.13+.95*sun)+vec3(.32,.39,.48)*spec*.32;
+      color+=vec3(.12,.25,.43)*rim*(.3+.7*sun);
+      vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-n*.93);
+      color+=vec3(.12,.21,.34)*pow(max(0.,dot(n,cursorDirection)),4.)*cursorGlow();
+      return pow(color,vec3(.82));
     }
     float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
     vec3 background(vec2 p){
@@ -175,40 +176,26 @@
       float a=smoothstep(0.,1.,chapter),b=smoothstep(1.,2.,chapter),c=smoothstep(2.,3.,chapter);
       float x=mix(0.,.54,a);x=mix(x,-.59,b);x=mix(x,0.,c);
       float y=mix(.10,0.,a); y=mix(y,.10,b);y=mix(y,.23,c);
-      x*=1.-mobile;y=mix(y,.27,mobile*(1.-c));
+      x*=1.-mobile;y=mix(y,.22,mobile*(1.-c));
       p-=vec2(x+sin(clock*.2)*.013,y+sin(clock*.31)*.016);
-      float camera=mix(3.8,3.5,a);camera=mix(camera,4.,b);camera=mix(camera,4.7,c);camera+=mobile*.9;
+      float camera=mix(3.8,3.5,a);camera=mix(camera,4.,b);camera=mix(camera,4.7,c);
+      camera=mix(camera,max(camera+.9,resolution.y/resolution.x*3.1),mobile);
       vec3 ro=vec3(pointer.x*.045,-pointer.y*.035,camera),rd=normalize(vec3(p*2.05,-2.45));
       vec3 col=background(p);
-      float boundB=dot(ro,rd),boundH=boundB*boundB-dot(ro,ro)+2.56;
-      if(boundH>0.){
-        float t=max(.01,-boundB-sqrt(boundH)),end=-boundB+sqrt(boundH);
-        float edge=10.,closestT=t;bool hit=false;
-        // Pixel-cone coverage smooths the silhouette, including rays that narrowly miss.
-        float pixelCone=1.15/resolution.y;
-        for(int i=0;i<160;i++){
-          float d=map(ro+rd*t),coverage=d/max(.0001,t*pixelCone);
-          if(coverage<edge){edge=coverage;closestT=t;}
-          if(d<.00035){hit=true;closestT=t;break;}
-          t+=max(d*.72,.0002);if(t>end)break;
-        }
-        if(hit||edge<1.){
-          vec3 pos=ro+rd*closestT,n=normal(pos),r=reflect(rd,n);
-          float fres=pow(1.-max(0.,dot(-rd,n)),4.);
-          float ao=clamp(map(pos+n*.14)*1.8/.14,.5,1.);
-          vec3 metal=environment(r)*(.68+.32*ao);
-          vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-pos);
-          float cursorDiffuse=max(0.,dot(n,cursorDirection));
-          float cursorSpec=pow(max(0.,dot(n,normalize(cursorDirection-rd))),18.);
-          metal+=vec3(.28,.42,.67)*(cursorDiffuse*.28+cursorSpec*.65)*cursorGlow();
-          float diffuse=max(0.,dot(n,normalize(vec3(-.5,.9,1.))));
-          metal+=vec3(.10,.12,.16)*diffuse+fres*vec3(.15,.22,.34);
-          vec3 iridescence=.5+.5*cos(6.28318*(dot(n,-rd)*1.5+vec3(0.,.12,.25))+chapter*.5);
-          metal*=mix(vec3(1.),vec3(iridescence),.12*fres);
-          metal=pow(metal/(.65+metal),vec3(.87));
-          float coverage=hit?1.:1.-smoothstep(.0,1.,edge);
-          col=mix(col,metal,coverage);
-        }
+      // Analytic sphere intersection: a round silhouette without marching artifacts.
+      float radius=.93;
+      float rayB=dot(ro,rd),h=rayB*rayB-dot(ro,ro)+radius*radius;
+      float closest=max(0.,-rayB);
+      float miss=length(ro+rd*closest)-radius;
+      float pixel=max(.0001,closest*.84/resolution.y);
+      float atmosphere=exp(-max(0.,miss)*26.)*(1.-smoothstep(.0,.32,miss));
+      col+=vec3(.055,.13,.24)*atmosphere;
+      if(miss<pixel){
+        float t=-rayB-sqrt(max(0.,h));
+        vec3 n=normalize(ro+rd*t);
+        vec3 surface=planetSurface(n,rd);
+        float coverage=1.-smoothstep(-pixel,pixel,miss);
+        col=mix(col,surface,coverage);
       }
       float grain=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5;
       col+=grain*.003;
