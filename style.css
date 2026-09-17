@@ -111,3 +111,6 @@ html[lang=ru] h2{font-size:clamp(38px,4.8vw,72px)}html[lang=lv] h2{font-size:cla
 /* A matching still planet when WebGL is unavailable. */
 .fallback-orbit{width:min(44vw,410px);border:0;transform:translate(-50%,-50%);background:radial-gradient(circle at 31% 25%,#9baec3 0,#627d98 23%,#354c67 49%,#172536 73%,#0a111d 95%);box-shadow:inset -18px -15px 40px #030812,0 0 32px #7cafdc22;opacity:1}
 @media(max-width:600px){.fallback-orbit{width:76vw;top:30%}}
+
+/* Glass and light fallback. */
+.fallback-orbit{border:1px solid #bdd8ff65;background:radial-gradient(ellipse at 28% 22%,#e3eeff85,transparent 16%),radial-gradient(ellipse at 65% 54%,#6349b975,transparent 37%),radial-gradient(ellipse at 36% 65%,#36bddd70,transparent 39%),radial-gradient(circle at 40% 35%,#16203555,#090e1844 65%,#567faa55);box-shadow:inset -8px -12px 28px #7c92d120,inset 3px 4px 12px #dceeff25,0 0 32px #6b90dc20}

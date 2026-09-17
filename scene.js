@@ -96,52 +96,56 @@
       vec2 delta=(uv-cursorUV)*vec2(resolution.x/resolution.y,1.);
       return exp(-dot(delta,delta)*32.)*cursorLight;
     }
-    float noiseHash(vec3 p){
-      p=fract(p*.3183099+vec3(.1,.2,.3));p*=17.;
-      return fract(p.x*p.y*p.z*(p.x+p.y+p.z));
-    }
-    float noise3(vec3 p){
-      vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
-      return mix(mix(mix(noiseHash(i),noiseHash(i+vec3(1,0,0)),f.x),
-                     mix(noiseHash(i+vec3(0,1,0)),noiseHash(i+vec3(1,1,0)),f.x),f.y),
-                 mix(mix(noiseHash(i+vec3(0,0,1)),noiseHash(i+vec3(1,0,1)),f.x),
-                     mix(noiseHash(i+vec3(0,1,1)),noiseHash(i+vec3(1,1,1)),f.x),f.y),f.z);
-    }
-    float clouds(vec3 p){
-      float value=0.,amplitude=.55;
-      for(int octave=0;octave<4;octave++){
-        value+=amplitude*noise3(p);p=p*2.03+vec3(7.1,3.7,1.8);amplitude*=.48;
+    vec3 plasma(vec3 entry,vec3 direction,float distanceInside){
+      vec3 glow=vec3(0.);float transmission=1.;
+      float samples=mix(64.,48.,mobile),stepSize=distanceInside/samples;
+      // Integrate luminous silk-like sheets through the interior, not on its surface.
+      for(int i=0;i<64;i++){
+        if(float(i)>=samples)break;
+        vec3 q=entry+direction*(float(i)+.5)*stepSize;
+        q.xy=rot(-.48+sin(clock*.17)*.16+pointer.y*.09)*q.xy;
+        q.xz=rot(clock*.10+chapter*.25+pointer.x*.12)*q.xz;
+        q.yz=rot(q.x*.7+sin(clock*.22)*.24)*q.yz;
+        float envelope=1.-smoothstep(.55,.88,length(q));
+        float wave=q.y-.24*sin(q.x*3.8+q.z*1.6-clock*.38)-.08*cos(q.z*5.+clock*.23);
+        float silk=exp(-wave*wave/.0022);
+        vec3 other=q;other.xy=rot(1.2)*other.xy;
+        float second=other.y-.21*sin(other.x*4.2-other.z*2.2+clock*.31);
+        float fold=exp(-second*second/.0018);
+        float haze=exp(-wave*wave/.055)*.07;
+        float density=(silk+fold*.7+haze)*envelope;
+        vec3 blue=mix(vec3(.10,.46,1.1),vec3(.35,.9,1.05),.5+.5*sin(q.x*3.+q.z*2.));
+        vec3 violet=mix(vec3(.40,.20,.95),vec3(.75,.47,1.05),.5+.5*sin(q.z*3.-clock*.15));
+        float fibres=.94+.06*sin(q.z*16.+q.x*8.+clock*.3);
+        vec3 emission=(blue*(silk+haze)+violet*fold*.7)*envelope*fibres;
+        emission+=vec3(.55,.78,1.)*pow(silk,3.)*.12*envelope;
+        glow+=transmission*emission*stepSize*2.8;
+        transmission*=exp(-density*stepSize*.8);
       }
-      return value;
+      return glow;
     }
-    vec3 planetSurface(vec3 n,vec3 rd){
-      // Rotate a seamless three-dimensional cloud field on a true sphere.
-      vec3 q=n;q.xy=rot(-.38+pointer.y*.06)*q.xy;
-      q.xz=rot(clock*.075+chapter*.3+pointer.x*.12)*q.xz;
-      float flow=clouds(q*3.1+vec3(0.,clock*.008,0.));
-      float bands=.5+.5*sin(q.y*21.+flow*4.+sin(q.x*3.)*.6);
-      float mist=clouds(q*7.5+flow*1.4);
-      vec3 albedo=mix(vec3(.16,.23,.32),vec3(.34,.43,.54),smoothstep(.1,.9,bands));
-      albedo=mix(albedo,vec3(.56,.62,.69),smoothstep(.48,.75,mist)*.24);
-      vec3 light=normalize(vec3(-.7,.85,1.1));
-      float sun=max(0.,dot(n,light));
-      float rim=pow(1.-max(0.,dot(n,-rd)),3.5);
-      float spec=pow(max(0.,dot(n,normalize(light-rd))),34.);
-      vec3 color=albedo*(.13+.95*sun)+vec3(.32,.39,.48)*spec*.32;
-      color+=vec3(.12,.25,.43)*rim*(.3+.7*sun);
+    vec3 glassReflection(vec3 n,vec3 rd){
+      vec3 r=reflect(rd,n);
+      float strip=exp(-pow((r.x+.38)/.06,2.))*smoothstep(-.25,.85,r.y);
+      float softbox=pow(max(0.,dot(r,normalize(vec3(-.6,.75,.8)))),42.);
+      float side=pow(max(0.,dot(r,normalize(vec3(.9,-.2,.2)))),32.);
+      float edge=pow(1.-max(0.,dot(n,-rd)),4.);
+      vec3 light=vec3(.75,.84,1.)*(strip*.4+softbox*.65);
+      light+=vec3(.4,.35,.75)*side*.3;
+      light+=vec3(.19,.35,.58)*edge;
       vec3 cursorDirection=normalize(vec3(pointer.x*1.8,-pointer.y*1.8,2.5)-n*.93);
-      color+=vec3(.12,.21,.34)*pow(max(0.,dot(n,cursorDirection)),4.)*cursorGlow();
-      return pow(color,vec3(.82));
+      light+=vec3(.4,.65,.9)*pow(max(0.,dot(n,normalize(cursorDirection-rd))),48.)*cursorGlow()*.65;
+      return light;
     }
     float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-    vec3 background(vec2 p){
+    vec3 background(vec2 p,vec2 screenUV){
       float halo=exp(-length(p*vec2(1.,1.15))*2.8);
       vec3 col=mix(vec3(.025,.029,.038),vec3(.068,.082,.109),halo);
       float light=cursorGlow();col+=vec3(.022,.04,.075)*light;
       // Three depths of drifting particles; entirely procedural, no asset downloads.
       for(int layer=0;layer<3;layer++){
         float depth=float(layer),scale=12.+depth*7.;
-        vec2 dust=uv*vec2(resolution.x/resolution.y,1.)*scale;
+        vec2 dust=screenUV*vec2(resolution.x/resolution.y,1.)*scale;
         dust+=vec2(clock*(.11+depth*.055),clock*(.17+depth*.06))+pointer*(.1+depth*.08);
         vec2 cell=floor(dust),f=fract(dust);float seed=hash(cell+depth*13.);
         vec2 center=vec2(.25+seed*.5,.25+hash(cell+4.)*.5);
@@ -167,7 +171,7 @@
         col+=vec3(.18,.31,.52)*(thread*(.14+sweep*.9)+glow*sweep*.2)*(1.+light*1.5);
         col+=vec3(.55,.72,1.)*beads*exp(-distanceToLine*350.)*(.25+sweep*.6);
       }
-      float wave=abs(length((uv-ripple.xy)*vec2(resolution.x/resolution.y,1.))-(1.-ripple.z)*1.3);
+      float wave=abs(length((screenUV-ripple.xy)*vec2(resolution.x/resolution.y,1.))-(1.-ripple.z)*1.3);
       col+=vec3(.075,.11,.17)*exp(-wave*100.)*ripple.z;
       return col;
     }
@@ -181,19 +185,28 @@
       float camera=mix(3.8,3.5,a);camera=mix(camera,4.,b);camera=mix(camera,4.7,c);
       camera=mix(camera,max(camera+.9,resolution.y/resolution.x*3.1),mobile);
       vec3 ro=vec3(pointer.x*.045,-pointer.y*.035,camera),rd=normalize(vec3(p*2.05,-2.45));
-      vec3 col=background(p);
+      vec3 col=background(p,uv);
       // Analytic sphere intersection: a round silhouette without marching artifacts.
       float radius=.93;
       float rayB=dot(ro,rd),h=rayB*rayB-dot(ro,ro)+radius*radius;
       float closest=max(0.,-rayB);
       float miss=length(ro+rd*closest)-radius;
       float pixel=max(.0001,closest*.84/resolution.y);
-      float atmosphere=exp(-max(0.,miss)*26.)*(1.-smoothstep(.0,.32,miss));
-      col+=vec3(.055,.13,.24)*atmosphere;
+      float halo=exp(-max(0.,miss)*24.)*(1.-smoothstep(0.,.3,miss));
+      col+=vec3(.026,.06,.12)*halo;
       if(miss<pixel){
         float t=-rayB-sqrt(max(0.,h));
-        vec3 n=normalize(ro+rd*t);
-        vec3 surface=planetSurface(n,rd);
+        vec3 entry=ro+rd*t,n=normalize(entry);
+        vec3 inside=refract(rd,n,1./1.16);
+        float distanceInside=max(0.,-2.*dot(entry,inside));
+        float edge=pow(1.-max(0.,dot(n,-rd)),3.);
+        // A restrained lens distortion makes the shell visibly transparent.
+        vec2 lens=n.xy*(.018+.035*edge);
+        vec3 transmitted=background(p+n.xy*.065,uv+lens)*vec3(.65,.76,.89);
+        vec3 internalLight=plasma(entry,inside,distanceInside);
+        vec3 surface=transmitted*(1.-edge*.65)+internalLight+glassReflection(n,rd);
+        // Compress only luminous values; keep the transparent interior dark and clear.
+        surface=surface/(vec3(1.)+surface*.45);
         float coverage=1.-smoothstep(-pixel,pixel,miss);
         col=mix(col,surface,coverage);
       }
